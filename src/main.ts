@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars,@typescript-eslint/no-unused-vars */
 // noinspection JSUnusedLocalSymbols
 
-import {commands, ExtensionContext, ExtensionMode, window} from 'vscode';
+import {commands, ExtensionContext, ExtensionMode, Terminal, window, workspace} from 'vscode';
 import {
   AnimationNames, AnimationSheetNames,
   AugmentNames,
@@ -62,5 +62,73 @@ export function activate(context: ExtensionContext) {
         const tmp = '';
       }
     });
+
+
+    let terminal: Terminal | null = null;
+
+    window.onDidCloseTerminal(t => {
+      if (t.name === "patching output") {
+        terminal = null;
+      }
+    })
+
+    const slipstreamPathPickOptions = {
+      canSelectFiles: false,
+      canSelectFolders: true,
+      title: "Find Slipstream (Folder containing modman.exe)"
+    }
+  
+    subs.push(commands.registerCommand('ftl-xml.patch-mod', async () => {
+      const foldersOpen = workspace.workspaceFolders;
+
+      if (foldersOpen === undefined) { 
+        window.showErrorMessage("can't run, no folders open");
+        return; 
+      }
+            
+      if (terminal === null) {
+        terminal = window.createTerminal("patching output", "powershell");
+      }
+      
+      let pathToSlipstream = context.globalState.get("ftl_xml_pathToSlipstream");
+      if (pathToSlipstream === undefined) {
+        const filePickRes = await window.showOpenDialog(slipstreamPathPickOptions);
+        
+        if (filePickRes === undefined) {
+          window.showErrorMessage("file pick aborted");
+          return;
+        }
+        pathToSlipstream = filePickRes[0].fsPath;
+        context.globalState.update("ftl_xml_pathToSlipstream", pathToSlipstream);
+      }
+  
+      const modPath = foldersOpen[0].uri.fsPath;
+      const modName = foldersOpen[0].name;
+
+      terminal.show();
+      terminal.sendText(
+      `if ( $pathsToInclude -eq $null ) { 
+        $pathsToInclude = New-Object System.Collections.Generic.List[System.String]
+        if ( Test-Path -Path '${modPath}\\data' ) { $pathsToInclude.Add('${modPath}\\data') }
+        if ( Test-Path -Path '${modPath}\\img' ) { $pathsToInclude.Add('${modPath}\\img') }
+        if ( Test-Path -Path '${modPath}\\audio' ) { $pathsToInclude.Add('${modPath}\\audio') }
+        if ( Test-Path -Path '${modPath}\\mod-appendix' ) { $pathsToInclude.Add('${modPath}\\mod-appendix') }
+      }
+      Compress-Archive \`
+        -Path $pathsToInclude.ToArray() \`
+        -DestinationPath '${pathToSlipstream}\\mods\\${modName}.zip' \`
+        -Force
+      &'${pathToSlipstream}\\modman.exe' --patch hyperspace.zip ${modName}.zip --runftl`
+      );
+    }));
+
+    subs.push(commands.registerCommand('ftl-xml.change-slipstream-path', async () => {
+      const filePickRes = await window.showOpenDialog(slipstreamPathPickOptions);
+      if (filePickRes === undefined) {
+        window.showErrorMessage("file pick aborted");
+        return;
+      }
+      context.globalState.update("ftl_xml_pathToSlipstream", filePickRes[0].fsPath);
+    }))
   }
 }

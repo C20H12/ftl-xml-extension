@@ -72,7 +72,19 @@
 			{
 				"command": "ftl-xml.show-animation",
 				"title": "Show FTL animation"
-			}
+			},
+			{
+				"command": "ftl-xml.change-slipstream-path",
+				"title": "Change Path To Slipstream Mod Manager"
+			},
+			{
+        "command": "ftl-xml.patch-mod",
+        "title": "FTL: Patch Current Mod",
+        "icon": {
+          "dark": "src/icons/kestrel.png",
+          "light": "src/icons/kestrel.png"
+        }
+      }
 		],
 		"menus": {
 			"commandPalette": [
@@ -87,7 +99,15 @@
 					"command": "ftl-xml.show-animation",
 					"when": "editorLangId == ftl-xml"
 				}
-			]
+			],
+			"editor/title": [
+        {
+          "command": "ftl-xml.patch-mod",
+          "group": "navigation",
+          "title": "Patch Current Mod",
+					"when": "editorLangId == ftl-xml"
+        }
+      ]
 		},
 		"configurationDefaults": {
 			"[ftl-xml]": {
