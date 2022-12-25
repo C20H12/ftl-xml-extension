@@ -1,6 +1,7 @@
 import {boolAttr, XmlTag} from './helpers';
 import {eventTags} from './event-elements';
 import {
+  AllBlueprintsValueSet,
   AnimationNames,
   AugmentNames,
   DroneNames,
@@ -20,6 +21,7 @@ import {animationTags} from './animation-elements';
 import {sectorTags} from './sector-elements';
 import {raceTags} from './race-elements';
 import {modTags} from './mod-tags';
+import {storeTags} from './store-elements';
 
 export const allTags: XmlTag[] = [
   ...eventTags,
@@ -30,6 +32,7 @@ export const allTags: XmlTag[] = [
   ...sectorTags,
   ...raceTags,
   ...modTags,
+  ...storeTags,
   {
     name: 'text',
     attributes: [
@@ -133,5 +136,8 @@ export const allTags: XmlTag[] = [
     attributes: [{name: 'name'}, {name: 'type', values: [{name: 'any'}, {name: 'all'}, {name: 'sum'}]}]
   },
 
-  {name: 'eventFile', attributes: []}
+  {name: 'eventFile', attributes: []},
+
+  //used in sector_data.xml as child of rarityList, also used in hyperspace.xml for customStore>category>item>blueprint
+  {name: 'blueprint', attributes: [{name: 'name', valueSet: AllBlueprintsValueSet.name}, {name: 'rarity'}]}
 ];
