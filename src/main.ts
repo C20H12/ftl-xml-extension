@@ -142,7 +142,7 @@ export function activate(context: ExtensionContext) {
         terminal = window.createTerminal("patching output", "powershell");
       }
       terminal.show();
-      terminal.sendText(`&'${pathToFtl}\\FTLGame.exe'`)
+      terminal.sendText(`Push-Location '${pathToFtl}' ; .\\FTLGame.exe ; Pop-Location`)
     }))
   }
 
