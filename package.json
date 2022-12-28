@@ -44,7 +44,11 @@
 					".xml",
 					".xml.append"
 				],
-				"configuration": "./language-configuration.json"
+				"configuration": "./language-configuration.json",
+				"icon": {
+					"light": "src/icons/ftl-xml-light.svg",
+          "dark": "src/icons/ftl-xml-dark.svg"
+				}
 			}
 		],
 		"grammars": [
