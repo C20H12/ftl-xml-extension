@@ -84,7 +84,11 @@
           "dark": "src/icons/kestrel.png",
           "light": "src/icons/kestrel.png"
         }
-      }
+      },
+			{
+				"command": "ftl-xml.runFtlCommand",
+				"title": "Run FTL: Faster THan Light"
+			}
 		],
 		"menus": {
 			"commandPalette": [
@@ -116,6 +120,26 @@
 					"other": "on",
 					"comments": "off",
 					"strings": "off"
+				}
+			}
+		},
+		"configuration": {
+			"title": "FTL-XML",
+			"properties": {
+				"ftl-xml.pathToSlipstream": {
+					"type": "string",
+					"default": "",
+					"description": "Path to Slipstream Mod Manager"
+				},
+				"ftl-xml.alwaysPatchWith": {
+					"type": "string",
+					"default": "hyperspace.ftl",
+					"description": "Enter the file names of mods to patch before your mod, separated by a space"
+				},
+				"ftl-xml.runFtl": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run FTL after patching"
 				}
 			}
 		}

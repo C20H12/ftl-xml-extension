@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars,@typescript-eslint/no-unused-vars */
 // noinspection JSUnusedLocalSymbols
 
-import {commands, ExtensionContext, ExtensionMode, Terminal, window, workspace} from 'vscode';
+import {commands, ExtensionContext, ExtensionMode, Terminal, Uri, window, workspace} from 'vscode';
 import {
   AnimationNames, AnimationSheetNames,
   AugmentNames,
@@ -23,7 +23,6 @@ import {AnimationPreview} from './animation-preview/animation-preview';
 // noinspection JSUnusedGlobalSymbols
 export function activate(context: ExtensionContext) {
   const {subs, workspaceParser, services} = setup(true);
-  context.subscriptions.push(...subs);
 
   if (context.extensionMode !== ExtensionMode.Test) {
     services.output.appendLine('FTL Extension activated');
@@ -72,12 +71,20 @@ export function activate(context: ExtensionContext) {
       }
     })
 
-    const slipstreamPathPickOptions = {
-      canSelectFiles: false,
-      canSelectFolders: true,
-      title: "Find Slipstream (Folder containing modman.exe)"
+    const locateSlipstreamPrompt = async () => {
+      const slipstreamPathPickOptions = {
+        canSelectFiles: false,
+        canSelectFolders: true,
+        title: "Find Slipstream (Folder containing modman.exe)"
+      }
+      const filePickRes = await window.showOpenDialog(slipstreamPathPickOptions);
+      if (filePickRes === undefined) {
+        window.showErrorMessage("file pick aborted");
+        return;
+      }
+      return filePickRes[0].fsPath;
     }
-  
+
     subs.push(commands.registerCommand('ftl-xml.patch-mod', async () => {
       const foldersOpen = workspace.workspaceFolders;
 
@@ -90,20 +97,21 @@ export function activate(context: ExtensionContext) {
         terminal = window.createTerminal("patching output", "powershell");
       }
       
-      let pathToSlipstream = context.globalState.get("ftl_xml_pathToSlipstream");
-      if (pathToSlipstream === undefined) {
-        const filePickRes = await window.showOpenDialog(slipstreamPathPickOptions);
-        
-        if (filePickRes === undefined) {
-          window.showErrorMessage("file pick aborted");
-          return;
-        }
-        pathToSlipstream = filePickRes[0].fsPath;
-        context.globalState.update("ftl_xml_pathToSlipstream", pathToSlipstream);
+      const extensionConfig = workspace.getConfiguration("ftl-xml");
+      let pathToSlipstream = extensionConfig.get<string>("pathToSlipstream");
+      if (pathToSlipstream === "" || pathToSlipstream === undefined) {
+        window.showInformationMessage(
+          "You will be prompted to locate slipstream as this is the first time this command is ran"
+        );
+
+        pathToSlipstream = await locateSlipstreamPrompt();
+        extensionConfig.update("pathToSlipstream", pathToSlipstream, true);
       }
   
       const modPath = foldersOpen[0].uri.fsPath;
       const modName = foldersOpen[0].name;
+      const patchWith = extensionConfig.get<string>("alwaysPatchWith");
+      const shouldRunFTL = extensionConfig.get<boolean>("runFtl");
 
       terminal.show();
       terminal.sendText(
@@ -118,17 +126,25 @@ export function activate(context: ExtensionContext) {
         -Path $pathsToInclude.ToArray() \`
         -DestinationPath '${pathToSlipstream}\\mods\\${modName}.zip' \`
         -Force
-      &'${pathToSlipstream}\\modman.exe' --patch hyperspace.zip ${modName}.zip --runftl`
+      &'${pathToSlipstream}\\modman.exe' --patch ${patchWith} ${modName}.zip ${shouldRunFTL ? "--runftl" : ""}`
       );
     }));
 
     subs.push(commands.registerCommand('ftl-xml.change-slipstream-path', async () => {
-      const filePickRes = await window.showOpenDialog(slipstreamPathPickOptions);
-      if (filePickRes === undefined) {
-        window.showErrorMessage("file pick aborted");
-        return;
+      workspace.getConfiguration("ftl-xml").update("pathToSlipstream", await locateSlipstreamPrompt(), true);
+    }))
+
+    subs.push(commands.registerCommand("ftl-xml.runFtlCommand", async () => {
+      const pathToSlipstream = workspace.getConfiguration("ftl-xml").get<string>("pathToSlipstream");
+      const modmanConfig = await workspace.fs.readFile(Uri.file(`${pathToSlipstream}\\modman.cfg`));
+      const pathToFtl = modmanConfig.toString().split("ftl_dats_path=")[1].split('\n')[0].trim().replace("\\:", ":");
+      if (terminal === null) {
+        terminal = window.createTerminal("patching output", "powershell");
       }
-      context.globalState.update("ftl_xml_pathToSlipstream", filePickRes[0].fsPath);
+      terminal.show();
+      terminal.sendText(`&'${pathToFtl}\\FTLGame.exe'`)
     }))
   }
+
+  context.subscriptions.push(...subs);
 }
